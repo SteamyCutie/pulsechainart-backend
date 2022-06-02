@@ -10,39 +10,57 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract PulseChainArtNFT is ERC721URIStorage, Ownable, ReentrancyGuard {
     uint256 public nextMintId = 0;
-    uint256 public wlMintPrice = 0.00 ether;
-    uint256 public pMintPrice = 0.00 ether;
+    uint256 public wlMintPrice = 0.03 ether;
+    uint256 public pMintPrice = 0.05 ether;
 
     string public currentURI = "https://ipfs.io/ipfs/";
 
     bytes32 public wlMerkleRoot;
 
-    uint256 public mintSteps = 1000;
+    uint256 public mintStep = 500;
     uint256 public totalSupply = 10000;
 
     bool public isPaused = true;
 
     mapping(address => bool) public isClaimed;
 
-    constructor(string memory _name, string memory _symbol, uint256 _totalSupply, string memory _currentURI) ERC721(_name, _symbol) {
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        uint256 _totalSupply,
+        string memory _currentURI
+    ) ERC721(_name, _symbol) {
         _setCurrentURI(_currentURI);
         _setTotalSupply(_totalSupply);
         _setPaused(true);
     }
 
     modifier isMintAllowed() {
-      require(!isPaused, "Error: You are not allowed to mint until the owner starts Minting!");
-      _;
+        require(
+            !isPaused,
+            "Error: You are not allowed to mint until the owner starts Minting!"
+        );
+        _;
     }
 
     modifier isMerkleProoved(bytes32[] calldata merkleProof) {
-      require(MerkleProof.verify(merkleProof, wlMerkleRoot, keccak256(abi.encodePacked(msg.sender))), "Error: Address is NOT whitelisted yet!");
-      _;
+        require(
+            MerkleProof.verify(
+                merkleProof,
+                wlMerkleRoot,
+                keccak256(abi.encodePacked(msg.sender))
+            ),
+            "Error: Address is NOT whitelisted yet!"
+        );
+        _;
     }
 
     modifier isEnough(uint256 _price, uint256 _tokens) {
-      require(_price * _tokens <= msg.value, "Error: Sent ETH value is INCORRECT!");
-      _;
+        require(
+            _price * _tokens <= msg.value,
+            "Error: Sent ETH value is INCORRECT!"
+        );
+        _;
     }
 
     function _mint(uint256 _mintCount) private {
@@ -55,21 +73,31 @@ contract PulseChainArtNFT is ERC721URIStorage, Ownable, ReentrancyGuard {
         for (uint256 i = 0; i < _mintCount; i++) {
             uint256 newId = nextMintId;
             _safeMint(msg.sender, newId);
-            _setTokenURI(newId, string(abi.encodePacked(currentURI, Strings.toString(newId))));
-            nextMintId ++;
+            _setTokenURI(
+                newId,
+                string(abi.encodePacked(currentURI, Strings.toString(newId)))
+            );
+            nextMintId++;
         }
 
-        if(nextMintId == totalSupply || nextMintId % 1000 == 0) {
+        if (nextMintId == totalSupply || nextMintId % mintStep == 0) {
             isPaused = true;
         }
     }
 
-    function pMint(uint256 _mintCount) external payable isMintAllowed isEnough(pMintPrice, _mintCount) nonReentrant returns(uint256) {
+    function pMint(uint256 _mintCount)
+        external
+        payable
+        isMintAllowed
+        isEnough(pMintPrice, _mintCount)
+        nonReentrant
+        returns (uint256)
+    {
         _mint(_mintCount);
 
         return nextMintId - 1;
     }
-    
+
     function wlMint(bytes32[] calldata _merkleProof)
         external
         payable
@@ -84,13 +112,13 @@ contract PulseChainArtNFT is ERC721URIStorage, Ownable, ReentrancyGuard {
 
         return nextMintId - 1;
     }
-    
+
     function setWLMerkleRoot(bytes32 merkleRoot) external onlyOwner {
-      wlMerkleRoot = merkleRoot;
+        wlMerkleRoot = merkleRoot;
     }
 
     function setPMintPrice(uint256 _price) external onlyOwner {
-      pMintPrice = _price;
+        pMintPrice = _price;
     }
 
     function setWLMintPrice(uint256 _price) external onlyOwner {
@@ -114,15 +142,23 @@ contract PulseChainArtNFT is ERC721URIStorage, Ownable, ReentrancyGuard {
     }
 
     function setTotalSupply(uint256 _totalSupply) external onlyOwner {
-      _setTotalSupply(_totalSupply);
+        _setTotalSupply(_totalSupply);
     }
 
     function _setTotalSupply(uint256 _totalSupply) internal {
-      totalSupply = _totalSupply;
+        totalSupply = _totalSupply;
+    }
+
+    function setMintStep(uint256 _mintStep) external onlyOwner {
+        _setMintStep((_mintStep));
+    }
+
+    function _setMintStep(uint256 _mintStep) internal {
+        mintStep = _mintStep;
     }
 
     function withdraw() public onlyOwner {
-      uint256 balance = address(this).balance;
-      payable(msg.sender).transfer(balance);
+        uint256 balance = address(this).balance;
+        payable(msg.sender).transfer(balance);
     }
 }
