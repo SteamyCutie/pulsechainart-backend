@@ -66,7 +66,7 @@ contract PulseChainArtNFT is ERC721URIStorage, Ownable, ReentrancyGuard {
     function _mint(uint256 _mintCount) private {
         require(
             nextMintId + _mintCount - 1 < totalSupply,
-            "Error: Supply limited"
+            "Error: Supply limited!"
         );
         require(!isPaused, "Error: Minting is Paused");
 
